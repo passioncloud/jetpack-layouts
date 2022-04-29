@@ -3,9 +3,10 @@ package net.passioncloud.compose_layout
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
@@ -15,12 +16,15 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil.compose.rememberImagePainter
+import kotlinx.coroutines.launch
 import net.passioncloud.compose_layout.ui.theme.ComposelayoutTheme
 
 class MainActivity : ComponentActivity() {
@@ -32,11 +36,19 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@Preview
+@Composable
+fun MyAppPreview() {
+    ComposelayoutTheme {
+        MyApp();
+    }
+}
+
 @Composable
 fun MyApp() {
     Scaffold(
         topBar = { MyAppBar() },
-        drawerContent = { MyDrawerContent() },
+       // drawerContent = { MyDrawerContent() },
         bottomBar = { MyBottomAppBar() }
     ) { innerPadding ->
         BodyContent(
@@ -92,22 +104,52 @@ fun MyAppBar() {
 
 @Composable
 fun BodyContent(modifier: Modifier = Modifier) {
-    Column(modifier) {
-        Text(
-            text = "Gwe musajja"
-        )
-        Text("When did you start college")
-    }
+    SimpleList()
 }
 
-
-@Preview
 @Composable
-fun MyAppPreview() {
-    ComposelayoutTheme {
-        MyApp();
+fun SimpleList() {
+    val scrollState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    Row {
+        Button(onClick = {
+            coroutineScope.launch {
+                scrollState.animateScrollToItem(0)
+            }
+        }) {
+            Text("Scroll to first")
+        }
+        Button(onClick = {
+            coroutineScope.launch {
+                scrollState.animateScrollToItem(9999)
+            }
+        }) {
+            Text("Scroll to last")
+        }
+    }
+    LazyColumn(state = scrollState) {
+        items(10000) {
+            ImageListItem(index = it)
+        }
     }
 }
+
+@Composable
+fun ImageListItem(index: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Image(
+            painter = rememberImagePainter(
+                data="https://developer.android.com/images/brand/Android_Robot.png"
+            ),
+            contentDescription = "My nice logo",
+            modifier = Modifier.size(38.dp)
+        )
+        Spacer(Modifier.width(10.0.dp))
+        Text("Item $index", style=MaterialTheme.typography.subtitle1)
+    }
+}
+
+
 
 
 @Composable
