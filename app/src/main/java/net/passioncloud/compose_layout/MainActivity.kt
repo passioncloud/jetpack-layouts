@@ -1,6 +1,7 @@
 package net.passioncloud.compose_layout
 
 import android.os.Bundle
+import android.widget.Space
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.*
@@ -20,12 +21,16 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberImagePainter
 import kotlinx.coroutines.launch
 import net.passioncloud.compose_layout.ui.theme.ComposelayoutTheme
+import kotlin.math.max
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,7 +53,7 @@ fun MyAppPreview() {
 fun MyApp() {
     Scaffold(
         topBar = { MyAppBar() },
-       // drawerContent = { MyDrawerContent() },
+        // drawerContent = { MyDrawerContent() },
         bottomBar = { MyBottomAppBar() }
     ) { innerPadding ->
         BodyContent(
@@ -102,6 +107,26 @@ fun MyAppBar() {
     )
 }
 
+val topics = listOf(
+    "Mangoes",
+    "Pies",
+    "Cabbage",
+    "Pizza",
+    "Samosa",
+    "queen",
+    "verdict",
+    "poem",
+    "dance",
+    "pick",
+    "drink",
+    "mean",
+    "beans",
+    "love",
+    "mine",
+    "taste",
+    "kick"
+)
+
 @Composable
 fun BodyContent(modifier: Modifier = Modifier) {
     SimpleList()
@@ -128,9 +153,13 @@ fun SimpleList() {
         }
     }
     LazyColumn(state = scrollState) {
-        items(10000) {
-            ImageListItem(index = it)
+//        for(topic in topics) {
+        items(topics.size) {
+            Chip(modifier = Modifier.padding(8.dp), text = topics[it])
         }
+//        items(10000) {
+//            ImageListItem(index = it)
+//        }
     }
 }
 
@@ -139,18 +168,126 @@ fun ImageListItem(index: Int) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Image(
             painter = rememberImagePainter(
-                data="https://developer.android.com/images/brand/Android_Robot.png"
+                data = "https://developer.android.com/images/brand/Android_Robot.png"
             ),
             contentDescription = "My nice logo",
             modifier = Modifier.size(38.dp)
         )
         Spacer(Modifier.width(10.0.dp))
-        Text("Item $index", style=MaterialTheme.typography.subtitle1)
+        Text("Item $index", style = MaterialTheme.typography.subtitle1)
     }
 }
 
 
+@Preview
+@Composable
+fun BodyContent2() {
+    ComposelayoutTheme {
+        Row (modifier = Modifier.horizontalScroll(rememberScrollState())){
+            StaggeredGrid(rows = 6) {
+                topics.forEach { topic ->
+                    Chip(modifier = Modifier.padding(8.dp), text = topic)
+                }
+            }
+        }
+    }
+}
 
+@Composable
+fun StaggeredGrid(
+    modifier: Modifier = Modifier,
+    rows: Int = 3,
+    content: @Composable () -> Unit
+) {
+    Layout(
+        modifier = modifier,
+        content = content
+    ) { measurables, constraints ->
+        // measure and position children given constraints logic here
+
+        // Keep track of width of each row
+        val rowWidths = IntArray(rows) { 0 }
+        // Keep track of max height of each row
+        val rowHeights = IntArray(rows) { 0 }
+
+        // Do not constrain child views further, measure them with given constraints
+        // List of measured children
+        val placeables = measurables.mapIndexed { index, measurable ->
+            // Measure each child
+            val placeable = measurable.measure(constraints = constraints)
+            // Track the width and height of each row
+            val row = index % rows
+            rowWidths[row] += placeable.width
+            rowHeights[row] = max(rowHeights[row], placeable.height)
+
+            placeable
+        }
+
+        // Width of grid is the widest row
+        val width: Int = rowWidths.maxOrNull()
+            ?.coerceIn(constraints.minWidth.rangeTo(constraints.maxHeight))
+            ?: constraints.minWidth
+
+        // Height of grid is the sum of the tallest element of each row
+        // coerced to the heights constraints
+        val height: Int = rowHeights.sumOf { it }
+            .coerceIn(constraints.minHeight.rangeTo(constraints.maxHeight))
+
+        // Y of each row based on the height accumulation of previous rows
+        val rowY = IntArray(rows) { 0 }
+        for (i in 1 until rows) {
+            rowY[i] = rowY[i - 1] + rowHeights[i - 1]
+        }
+
+        // Position children on screen. We also keep track of the X coordinate for each row
+        // in the rowX variable
+
+        // Set the size of the parent layout
+        layout(width, height) {
+            // x cord we have placed up to, per row
+            val rowX = IntArray(rows) { 0 }
+            placeables.forEachIndexed { index, placeable ->
+                val row = index % rows
+                placeable.placeRelative(
+                    x = rowX[row],
+                    y = rowY[row]
+                )
+                rowX[row] += placeable.width
+            }
+        }
+    }
+}
+
+// Use our custom StaggeredGrid
+@Composable
+fun Chip(modifier: Modifier = Modifier, text: String) {
+    Card(
+        modifier = modifier,
+        border = BorderStroke(color = Color.Black, width = Dp.Hairline),
+        shape = RoundedCornerShape(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 8.dp, top = 4.dp, end = 8.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(16.dp, 16.dp)
+                    .background(color = MaterialTheme.colors.secondary)
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(text = text)
+        }
+    }
+}
+
+@Preview
+@Composable
+fun ChipPreview() {
+    ComposelayoutTheme {
+        Chip(text = "Vanilla")
+    }
+}
 
 @Composable
 fun PhotographerCard(modifier: Modifier = Modifier) {
